@@ -1,12 +1,16 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use App\Models\User;
 use App\Models\Reservation;
 use Illuminate\Http\Request;
 
 class ReservationController extends Controller
 {
+    public function reservationByUser(User $user){
+        $reservation = Reservation::query()->where('user_id',$user->id)->with('vehicle')->get();
+        return response()->json($reservation);
+    }
     public function index()
     {
         return response()->json(Reservation::all());
@@ -17,7 +21,7 @@ class ReservationController extends Controller
             'user_id' => 'required|exists:users,id',
             'vehicle_id' => 'required|exists:vehicles,id',
             'start_date' => 'required|date',
-            'end_date' => 'date|after_or_equal:start_date',
+            'end_date' => 'required|date|after_or_equal:start_date',
             'total_price' => 'required|numeric',
         ]);
         $reservation = Reservation::create($validated);
@@ -51,6 +55,6 @@ class ReservationController extends Controller
     public function destroy(Reservation $reservation)
     {
         $reservation->delete();
-        return response()->json(['message' => 'Deleted']);
+        return response()->noContent();
     }
 }

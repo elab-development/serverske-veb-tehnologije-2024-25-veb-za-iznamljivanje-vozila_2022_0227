@@ -4,8 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 class VehicleController extends Controller
 {
+    public function available()
+    {
+        return response()->json(Vehicle::query()->where('available', true)->get());
+    }
+    public function search(Request $request){
+        $q = $request->query('q', '');
+        $result = Vehicle::query()->where('brand', 'like', '%'.$q.'%')->orWhere('model', 'like', '%'.$q.'%')->get();
+        return response()->json($result);
+    }
     public function index()
     {
         return response()->json(Vehicle::all());
@@ -57,8 +67,12 @@ class VehicleController extends Controller
         $validate = $request->validate([
             'brand' => 'required|string',
             'model' => 'required|string',
-            'plate_number' => 'required|string|unique:vehicles,plate_number',
-            'year' => 'required|integer|digits:4',
+            'plate_number' => [
+                'required',
+                'string',
+                Rule::unique('vehicles','plate_number')->ignore($vehicle->id),
+            ],
+            'year' => 'required|digits:4',
             'price_per_day' => 'required|numeric',
             'available' => 'required|boolean'
         ]);
@@ -72,6 +86,6 @@ class VehicleController extends Controller
     public function destroy(Vehicle $vehicle)
     {
         $vehicle->delete();
-        return response()->json(['message' => 'Vehicle deleted']);
+        return response()->noContent();
     }
 }
