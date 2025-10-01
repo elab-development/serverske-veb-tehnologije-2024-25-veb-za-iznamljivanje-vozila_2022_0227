@@ -39,7 +39,7 @@ class VehicleController extends Controller
            'price_per_day' => 'required|numeric',
            'available' => 'required|boolean'
         ]);
-        $vehicle = Vehicle::create($validate);
+        $vehicle = Vehicle::query()->create($validate);
         return response()->json($vehicle);
     }
 
@@ -67,15 +67,14 @@ class VehicleController extends Controller
         $validate = $request->validate([
             'brand' => 'required|string',
             'model' => 'required|string',
-            'plate_number' => [
-                'required',
-                'string',
-                Rule::unique('vehicles','plate_number')->ignore($vehicle->id),
-            ],
+            'plate_number'  => ['sometimes','string', Rule::unique('vehicles','plate_number')->ignore($vehicle->id)],
             'year' => 'required|digits:4',
             'price_per_day' => 'required|numeric',
             'available' => 'required|boolean'
         ]);
+        if (empty($data)) {
+            return response()->json(['message' => 'No changes provided'], 422);
+        }
         $vehicle->update($validate);
         return response()->json($vehicle);
     }

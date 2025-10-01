@@ -24,7 +24,7 @@ class ReservationController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
             'total_price' => 'required|numeric',
         ]);
-        $reservation = Reservation::create($validated);
+        $reservation = Reservation::query()->create($validated);
         return response()->json($reservation, 201);
     }
     public function create()
