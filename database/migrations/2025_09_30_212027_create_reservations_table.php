@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('reservations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained();
-            $table->foreignId('vehicle_id')->constrained();
+            $table->foreignId('user_id');
+            $table->foreignId('vehicle_id');
             $table->date('start_date');
             $table->date('end_date');
             $table->decimal('total_price',10,2);
