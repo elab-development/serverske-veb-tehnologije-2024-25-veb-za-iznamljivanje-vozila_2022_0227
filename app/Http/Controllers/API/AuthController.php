@@ -14,7 +14,6 @@ class AuthController extends Controller
             'name'=> 'required|string|max:255',
             'email'=> 'required|email|unique:users,email',
             'password'=>'required|min:6|confirmed',
-            'role'=> 'in:admin,user',
             'address'=>'nullable|string|max:255',
             'phone'=>'nullable|string|max:50|unique:users,phone',
             'drivers_license'=>'nullable|string|max:50|unique:users,drivers_license',

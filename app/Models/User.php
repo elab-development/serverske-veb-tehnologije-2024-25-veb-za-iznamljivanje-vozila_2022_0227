@@ -7,19 +7,27 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-
+use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens,HasFactory, Notifiable;
+    use HasApiTokens,HasFactory, Notifiable,HasRoles;
     public function reservations(){
         return $this->hasMany(Reservation::class);
     }
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isUser(): bool
+    {
+        return $this->role === 'user';
+    }
+
+    public function hasRole(string $role): bool
+    {
+        return $this->role === $role;
+    }
     protected $fillable = [
         'name',
         'email',
