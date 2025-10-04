@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\Rule;
 class VehicleController extends Controller
 {
+
     public function available()
     {
         return response()->json(Vehicle::query()->where('available', true)->get());
@@ -58,15 +61,22 @@ class VehicleController extends Controller
             return response()->json(['message' => 'Only admins can create vehicles'], 403);
         }
         $validate = $request->validate([
-           'brand' => 'required|string',
-           'model' => 'required|string',
-           'plate_number' => 'required|string|unique:vehicles,plate_number',
-           'year' => 'required|digits:4',
-           'price_per_day' => 'required|numeric',
-           'available' => 'required|boolean'
+            'brand' => 'required|string',
+            'model' => 'required|string',
+            'plate_number' => 'required|string|unique:vehicles,plate_number',
+            'year' => 'required|digits:4',
+            'price_per_day' => 'required|numeric',
+            'available' => 'required|boolean'
         ]);
-        $vehicle = Vehicle::query()->create($validate);
-        return response()->json($vehicle);
+        DB::beginTransaction();
+        try {
+            $vehicle = Vehicle::create($validate);
+            DB::commit();
+            return response()->json($vehicle, 201);
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json(['error' => 'Failed to create vehicle'], 500);
+        }
     }
 
     /**
@@ -115,7 +125,51 @@ class VehicleController extends Controller
      */
     public function destroy(Vehicle $vehicle)
     {
-        $vehicle->delete();
-        return response()->noContent();
+        DB::beginTransaction();
+
+        try {
+            $activeReservations = $vehicle->reservations()->count();
+
+            if ($activeReservations > 0) {
+                throw new \Exception('Cannot delete vehicle with active reservations');
+            }
+
+            $vehicle->delete();
+            DB::commit();
+            return response()->noContent();
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+    public function getUserLocation(Request $request)
+    {
+        $ip = $request->ip();
+//        if ($ip === '127.0.0.1' || $ip === '::1') {
+//            $ip = '8.8.8.8';
+//        }
+
+        $response = Http::get("https://apiip.net/api/check", [
+            'ip' => $ip,
+            'accessKey' => 'a1e4bf61-08f1-425e-bcb9-3edbea44f5fc'
+        ]);
+
+        if ($response->failed()) {
+            return response()->json(['error' => 'Failed to get location'], 500);
+        }
+
+        $data = $response->json();
+
+        return response()->json([
+            'ip' => $data['ip'] ?? 'N/A',
+            'city' => $data['capital'] ?? 'N/A',
+            'country' => $data['countryName'] ?? 'N/A',
+            'country_code' => $data['countryCode'] ?? 'N/A',
+            'latitude' => $data['latitude'] ?? 'N/A',
+            'longitude' => $data['longitude'] ?? 'N/A',
+            'continent' => $data['continentName'] ?? 'N/A',
+            'phone_code' => $data['phoneCode'] ?? 'N/A',
+            'message' => "Showing vehicles available in " . ($data['countryName'] ?? 'your location')
+        ]);
     }
 }

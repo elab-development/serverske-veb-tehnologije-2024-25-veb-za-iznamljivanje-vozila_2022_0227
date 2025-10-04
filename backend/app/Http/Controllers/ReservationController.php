@@ -1,7 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use App\Models\Vehicle;
+use Illuminate\Support\Facades\DB;
 use App\Models\Reservation;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -59,8 +60,18 @@ class ReservationController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
             'total_price' => 'required|numeric',
         ]);
-        $reservation = Reservation::query()->create($validated);
-        return response()->json($reservation, 201);
+
+        DB::beginTransaction();
+
+        try {
+            $reservation = Reservation::create($validated);
+            Vehicle::where('id', $validated['vehicle_id'])->update(['available' => false]);
+            DB::commit();
+            return response()->json($reservation, 201);
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json(['error' => 'Failed'], 500);
+        }
     }
     public function create()
     {
@@ -89,8 +100,17 @@ class ReservationController extends Controller
 
     public function destroy(Reservation $reservation)
     {
-        $reservation->delete();
-        return response()->noContent();
+        DB::beginTransaction();
+
+        try {
+            Vehicle::where('id', $reservation->vehicle_id)->update(['available' => true]);
+            $reservation->delete();
+            DB::commit();
+            return response()->noContent();
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json(['error' => 'Failed'], 500);
+        }
     }
 
     public function exportCSV()
@@ -126,9 +146,47 @@ class ReservationController extends Controller
 
         return response()->stream($callback, 200, $headers);
     }
+    public function statisticsWithJoin()
+    {
+        $stats = DB::table('reservations')
+            ->join('users', 'reservations.user_id', '=', 'users.id')
+            ->join('vehicles', 'reservations.vehicle_id', '=', 'vehicles.id')
+            ->select(
+                'users.id as user_id',
+                'users.name as user_name',
+                'users.email',
+                'vehicles.brand',
+                'vehicles.model',
+                DB::raw('COUNT(reservations.id) as total_reservations'),
+                DB::raw('SUM(reservations.total_price) as total_revenue'),
+                DB::raw('AVG(reservations.total_price) as avg_price'),
+                DB::raw('MIN(reservations.start_date) as first_reservation'),
+                DB::raw('MAX(reservations.end_date) as last_reservation')
+            )
+            ->groupBy('users.id', 'users.name', 'users.email', 'vehicles.brand', 'vehicles.model')
+            ->having('total_reservations', '>=', 1)
+            ->orderBy('total_revenue', 'desc')
+            ->get();
 
+        return response()->json([
+            'statistics' => $stats,
+            'total_users' => $stats->count(),
+            'total_revenue_all' => $stats->sum('total_revenue')
+        ]);
+    }
+    public function reservationByVehicle(Vehicle $vehicle){
+        $vehicle = Vehicle::query()->where('id', $vehicle->id)->firstOrFail();
+        $reservations = $vehicle->reservations()->with('user')->get();
 
-
-
-
+        return response()->json([
+            'vehicle' => [
+                'id' => $vehicle->id,
+                'brand' => $vehicle->brand,
+                'model' => $vehicle->model,
+                'year' => $vehicle->year
+            ],
+            'total_reservations' => $reservations->count(),
+            'reservations' => $reservations
+        ]);
+    }
 }
