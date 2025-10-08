@@ -20,13 +20,14 @@ class VehicleFactory extends Factory
             'brand' => fake()->company(),
             'model' => fake()->word(),
             'plate_number' => strtoupper(fake()->bothify('??-####')),
-            'year' => fake()->numberBetween(2010, 2025),
-            'price_per_day' => fake()->numberBetween(30, 150),
-            'fuel_type' => fake()->randomElement(['petrol', 'diesel', 'hybrid', 'electric']),
-            'transmission' => fake()->randomElement(['manual', 'automatic']),
-            'seats' => fake()->numberBetween(2, 7),
-            'tank_capacity' => fake()->numberBetween(30, 80),
+            'year' => (int) fake()->numberBetween(2010, 2025),
+            'price_per_day' => fake()->randomFloat(2, 20, 150),
             'available' => true,
+            'vehicle_type' => fake()->randomElement(['hatchback','suv','sport','sedan']),
+            'fuel_type' => fake()->randomElement(['petrol','diesel','hybrid','electric']),
+            'transmission' => fake()->randomElement(['manual','automatic']),
+            'seats' => fake()->numberBetween(2, 9),
+            'tank_capacity' => fake()->numberBetween(30, 80),
         ];
     }
 }

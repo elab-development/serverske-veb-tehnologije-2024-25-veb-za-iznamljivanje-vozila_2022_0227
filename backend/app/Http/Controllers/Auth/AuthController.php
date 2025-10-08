@@ -30,6 +30,7 @@ class AuthController extends Controller
                 'drivers_license'=>$data['drivers_license'] ?? null,
                 'is_active'=>$data['is_active'] ?? true,
             ]);
+            $user->assignRole('user');
             $token = $user->createToken('auth_token')->plainTextToken;
             return response()->json(['user'=>$user,'token'=>$token],201);
         }catch (\Exception $e){
