@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 
 class RoleSeeder extends Seeder
@@ -16,9 +17,15 @@ class RoleSeeder extends Seeder
     {
         $adminRole = Role::query()->firstOrCreate(['name' => 'admin']);
         $userRole = Role::query()->firstOrCreate(['name' => 'user']);
-        $admin = User::query()->first();
-        if ($admin) {
-            $admin->assignRole($adminRole);
-        }
+        $admin = User::query()->updateOrCreate(
+            ['email' => 'admin@admin.com'],
+            [
+                'name' => 'Admin',
+                'password' => Hash::make('admin123'),
+                'is_active' => true,
+                'role' => 'admin'
+            ]
+        );
+        $admin->syncRoles(['admin']);
     }
 }
