@@ -1,0 +1,76 @@
+.vehicle-card{
+  display: flex;
+  flex-direction: column;
+  width: 350px;
+  padding: 20px;
+  gap: 30px;
+  background: rgba(203, 201, 194, 0.24);
+  box-shadow: 0px 13px 17px -5px rgba(175,170,164,0.75);
+  border-radius: 10px;
+  .image {
+    display: flex;
+    justify-content: center;
+    img {
+      width: 200px;
+      height: 120px;
+    }
+  }
+  .top-card{
+    display: flex;
+    justify-content: space-between;
+    .model-type{
+      .brand-model{
+        font-weight: bold;
+      }
+      .vehicle-type{
+        font-size: 14px;
+        margin-top: 2px;
+        font-weight: 250;
+      }
+    }
+    .price{
+      .price-perday{
+        font-weight: bold!important;
+        color: #F1BC00;
+        font-size: 18px;
+      }
+      span{
+        font-weight: 200;
+        font-size: 14px;
+      }
+    }
+  }
+  .middle-card{
+    display: flex;
+    justify-content: space-evenly;
+    color: #4e4e4e;
+    .tank {
+      span{
+        margin-left: 2px;
+      }
+    }
+    .transmission {
+      span{
+        margin-left: 2px;
+      }
+    }
+    .seats{
+      span{
+        margin-left: 3px;
+      }
+    }
+  }
+  .details-btn{
+    display: flex;
+    justify-content: center;
+    a{
+      background: #F1BC00;
+      width: 250px;
+      padding: 10px 5px;
+      border-radius: 10px;
+      text-decoration: none;
+      color: #ffffff;
+      text-align: center;
+    }
+  }
+}

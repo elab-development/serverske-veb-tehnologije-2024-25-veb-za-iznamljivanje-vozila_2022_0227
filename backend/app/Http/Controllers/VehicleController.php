@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 
+use App\Models\Reservation;
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -11,13 +12,44 @@ use Illuminate\Validation\Rule;
 class VehicleController extends Controller
 {
 
-    public function available()
+    public function checkAvailability(Vehicle $vehicle, Request $request)
     {
-        return response()->json(Vehicle::query()->where('available', true)->get());
+        $validated = $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after:start_date',
+        ]);
+
+        $isAvailable = !Reservation::query()->where('vehicle_id', $vehicle->id)
+            ->where(function($query) use ($validated) {
+                $query->whereBetween('start_date', [$validated['start_date'], $validated['end_date']])
+                    ->orWhereBetween('end_date', [$validated['start_date'], $validated['end_date']])
+                    ->orWhere(function($q) use ($validated) {
+                        $q->where('start_date', '<=', $validated['start_date'])
+                            ->where('end_date', '>=', $validated['end_date']);
+                    });
+            })
+            ->exists();
+
+        return response()->json([
+            'vehicle_id' => $vehicle->id,
+            'available' => $isAvailable,
+            'start_date' => $validated['start_date'],
+            'end_date' => $validated['end_date'],
+        ]);
     }
     public function search(Request $request){
-        $q = $request->query('q', '');
-        $result = Vehicle::query()->where('brand', 'like', '%'.$q.'%')->orWhere('model', 'like', '%'.$q.'%')->get();
+        $q = trim($request->query('q', ''));
+
+        $result = Vehicle::query()
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('brand', 'like', "%{$q}%")
+                        ->orWhere('model', 'like', "%{$q}%")
+                        ->orWhere('vehicle_type', $q);
+                });
+            })
+            ->get();
+
         return response()->json($result);
     }
     public function index(Request $request)
@@ -66,6 +98,10 @@ class VehicleController extends Controller
             'plate_number' => 'required|string|unique:vehicles,plate_number',
             'year' => 'required|digits:4',
             'price_per_day' => 'required|numeric',
+            'fuel_type'     => 'nullable|in:petrol,diesel,hybrid,electric',
+            'transmission'  => 'nullable|in:manual,automatic',
+            'seats'         => 'nullable|integer|min:1|max:9',
+            'tank_capacity' => 'nullable|numeric|min:0|max:100',
             'available' => 'required|boolean'
         ]);
         DB::beginTransaction();
@@ -109,6 +145,10 @@ class VehicleController extends Controller
             'plate_number'  => ['sometimes','string', Rule::unique('vehicles','plate_number')->ignore($vehicle->id)],
             'year'          => 'sometimes|integer|digits:4',
             'price_per_day' => 'sometimes|numeric',
+            'fuel_type'     => 'sometimes|in:petrol,diesel,hybrid,electric|nullable',
+            'transmission'  => 'sometimes|in:manual,automatic|nullable',
+            'seats'         => 'sometimes|integer|min:1|max:9|nullable',
+            'tank_capacity' => 'sometimes|numeric|min:0|max:100|nullable',
             'available'     => 'sometimes|boolean',
         ]);
 

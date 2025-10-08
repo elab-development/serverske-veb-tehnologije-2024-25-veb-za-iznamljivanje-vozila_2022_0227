@@ -56,16 +56,41 @@ class ReservationController extends Controller
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
             'vehicle_id' => 'required|exists:vehicles,id',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'total_price' => 'required|numeric',
+            'start_date' => 'required|date|after_or_equal:today',
+            'end_date' => 'required|date|after:start_date',
+            'total_price' => 'required|numeric|min:0',
         ]);
 
+        $postojirezervacija = Reservation::query()->where('vehicle_id', $validated['vehicle_id'])
+        ->where(function ($query) use ($validated) {
+            $query->where(function($q) use ($validated) {
+                $q->whereBetween('start_date', $validated['start_date'], $validated['end_date'])
+                ->orWhereBetween('end_date', $validated['start_date'], $validated['end_date'])
+                ->orWhere(function($sub) use ($validated) {
+                    $sub->where('start_date', '<=', $validated['end_date'])
+                    ->where('end_date', '>=', $validated['start_date']);
+                });
+            });
+        })
+        ->exists();
+        if ($postojirezervacija) {
+            return response()->json([
+                'message' => 'The vehicle is already reserved during this period'
+            ], 422);
+        }
+        $vehicle = Vehicle::query()->find($validated['vehicle_id']);
+        $start = new \DateTime($validated['start_date']);
+        $end = new \DateTime($validated['end_date']);
+        $brojDana = $start->diff($end)->days;
+        if($brojDana == 0){
+            $brojDana = 1;
+        }
+        $validated['total_price'] = $vehicle->price_per_day * $brojDana;
         DB::beginTransaction();
 
         try {
             $reservation = Reservation::create($validated);
-            Vehicle::where('id', $validated['vehicle_id'])->update(['available' => false]);
+            Vehicle::query()->where('id', $validated['vehicle_id'])->update(['available' => false]);
             DB::commit();
             return response()->json($reservation, 201);
         } catch (\Exception $e) {
@@ -88,13 +113,42 @@ class ReservationController extends Controller
     public function update(Request $request, Reservation $reservation)
     {
         $validated = $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'vehicle_id' => 'required|exists:vehicles,id',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'total_price' => 'required|numeric',
+            'start_date' => 'sometimes|date|after_or_equal:today',
+            'end_date' => 'sometimes|date|after:start_date',
         ]);
-        $reservation->update($validated);
+        if(isset($validated['start_date']) || isset($validated['end_date'])) {
+            $startDate = $validated['start_date'] ?? $reservation->start_date;
+            $endDate = $validated['end_date'] ?? $reservation->end_date;
+
+            $postojiRezervacija = Reservation::query()->where('vehicle_id', $reservation->vehicle_id)
+                ->where('id','!=',$reservation->id)
+                ->where(function ($query) use ($startDate, $endDate) {
+                    $query->where(function($q) use ($startDate, $endDate) {
+                        $q->whereBetween('start_date', [$startDate, $endDate])
+                            ->orWhereBetween('end_date', [$startDate, $endDate])
+                            ->orWhere(function($sub) use ($startDate, $endDate) {
+                                $sub->where('start_date', '<=', $startDate)
+                                    ->where('end_date', '>=', $endDate);
+                            });
+                    });
+                })
+                ->exists();
+            if($postojiRezervacija){
+                return response()->json([
+                    'message' => 'The vehicle is already reserved during this period'
+                ],422);
+            }
+            $vehicle = Vehicle::query()->find($reservation->vehicle_id);
+            $start = new \DateTime($startDate);
+            $end = new \DateTime($endDate);
+            $brojDana = $start->diff($end)->days;
+            if($brojDana ==0){
+                $brojDana=1;
+            }
+            $validated['total_price'] = $vehicle->price_per_day * $brojDana;
+            $reservation->update($validated);
+            return response()->json($reservation);
+        }
         return response()->json($reservation, 200);
     }
 
@@ -102,14 +156,20 @@ class ReservationController extends Controller
     {
         DB::beginTransaction();
 
-        try {
-            Vehicle::where('id', $reservation->vehicle_id)->update(['available' => true]);
+        try{
+            $vehicleId = $reservation->vehicle_id;
             $reservation->delete();
+            $imaAktivnihRezervacija = Reservation::query()->where('vehicle_id', $vehicleId)
+                ->where('end_date', '>=',now())
+                ->exists();
+            if(!$imaAktivnihRezervacija){
+                Vehicle::query()->where('id', $vehicleId)->update(['available' => true]);
+            }
             DB::commit();
             return response()->noContent();
-        } catch (\Exception $e) {
+        }catch (\Exception $e) {
             DB::rollback();
-            return response()->json(['error' => 'Failed'], 500);
+            return response()->json(['error' => 'Error while deleting the reservation.'], 500);
         }
     }
 

@@ -1,14 +1,15 @@
 <?php
 
-use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\VehicleController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('vehicles/available', [VehicleController::class, 'available']);
+
 Route::get('vehicles/search', [VehicleController::class, 'search']);
+Route::get('vehicles/{vehicle}/check-availability', [VehicleController::class, 'checkAvailability']);
 Route::get('user/location', [VehicleController::class, 'getUserLocation']);
 
 Route::get('vehicles/convert-price', [CurrencyController::class, 'convertPrice']);

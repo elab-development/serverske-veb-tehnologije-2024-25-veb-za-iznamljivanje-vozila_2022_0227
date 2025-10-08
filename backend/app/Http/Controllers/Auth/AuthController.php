@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\API;
+namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -19,18 +19,22 @@ class AuthController extends Controller
             'drivers_license'=>'nullable|string|max:50|unique:users,drivers_license',
             'is_active'=>'boolean',
         ]);
-        $user = User::query()->create([
-           'name'=>$data['name'],
-           'email'=>$data['email'],
-           'password'=>bcrypt($data['password']),
-           'role'=>$data['role'] ?? 'user',
-           'address'=>$data['address'] ?? null,
-           'phone'=>$data['phone'] ?? null,
-           'drivers_license'=>$data['drivers_license'] ?? null,
-           'is_active'=>$data['is_active'] ?? true,
-        ]);
-        $token = $user->createToken('auth_token')->plainTextToken;
-        return response()->json(['user'=>$user,'token'=>$token],201);
+        try{
+            $user = User::query()->create([
+                'name'=>$data['name'],
+                'email'=>$data['email'],
+                'password'=>bcrypt($data['password']),
+                'role'=>$data['role'] ?? 'user',
+                'address'=>$data['address'] ?? null,
+                'phone'=>$data['phone'] ?? null,
+                'drivers_license'=>$data['drivers_license'] ?? null,
+                'is_active'=>$data['is_active'] ?? true,
+            ]);
+            $token = $user->createToken('auth_token')->plainTextToken;
+            return response()->json(['user'=>$user,'token'=>$token],201);
+        }catch (\Exception $e){
+            return response()->json(['error' => 'Failed to create user'], 500);
+        }
     }
     public function login(Request $request){
         $data = $request->validate([
