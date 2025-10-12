@@ -16,23 +16,18 @@ class User extends Authenticatable
     }
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return $this->hasRole('admin');
     }
 
     public function isUser(): bool
     {
-        return $this->role === 'user';
-    }
-
-    public function hasRole(string $role): bool
-    {
-        return $this->role === $role;
+        return $this->hasRole('user');
     }
     protected $fillable = [
         'name',
         'email',
         'password',
-        'role',
+        //'role',
         'address',
         'phone',
         'drivers_license',

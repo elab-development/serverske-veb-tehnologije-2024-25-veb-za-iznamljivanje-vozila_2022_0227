@@ -2,30 +2,32 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 
 class RoleSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        $adminRole = Role::query()->firstOrCreate(['name' => 'admin']);
-        $userRole = Role::query()->firstOrCreate(['name' => 'user']);
-        $admin = User::query()->updateOrCreate(
-            ['email' => 'admin@admin.com'],
-            [
-                'name' => 'Admin',
-                'password' => Hash::make('admin123'),
-                'is_active' => true,
-                'role' => 'admin'
-            ]
-        );
-        $admin->syncRoles(['admin']);
+        $adminRole = Role::create(['name' => 'admin']);
+        $userRole = Role::create(['name' => 'user']);
+
+        Permission::create(['name' => 'manage vehicles']);
+        Permission::create(['name' => 'export reservations']);
+        Permission::create(['name' => 'create reservation']);
+        Permission::create(['name' => 'view own reservations']);
+
+        $adminRole->givePermissionTo([
+            'manage vehicles',
+            'export reservations',
+            'create reservation',
+            'view own reservations'
+        ]);
+
+        $userRole->givePermissionTo([
+            'create reservation',
+            'view own reservations'
+        ]);
     }
 }

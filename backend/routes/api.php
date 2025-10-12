@@ -11,16 +11,11 @@ use Illuminate\Support\Facades\Route;
 Route::get('vehicles/search', [VehicleController::class, 'search']);
 Route::get('vehicles/{vehicle}/check-availability', [VehicleController::class, 'checkAvailability']);
 Route::get('user/location', [VehicleController::class, 'getUserLocation']);
-
 Route::get('vehicles/convert-price', [CurrencyController::class, 'convertPrice']);
 
 
 Route::get('users/{user}/reservations', [ReservationController::class, 'reservationByUser']);
-
-
 Route::get('vehicles/{vehicle}/reservations', [ReservationController::class, 'reservationByVehicle']);
-
-
 Route::get('reservations/statistics-join', [ReservationController::class, 'statisticsWithJoin']);
 
 

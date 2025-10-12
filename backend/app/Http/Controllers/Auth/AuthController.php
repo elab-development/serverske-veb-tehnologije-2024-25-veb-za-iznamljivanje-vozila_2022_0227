@@ -19,12 +19,13 @@ class AuthController extends Controller
             'drivers_license'=>'nullable|string|max:50|unique:users,drivers_license',
             'is_active'=>'boolean',
         ]);
+
         try{
             $user = User::query()->create([
                 'name'=>$data['name'],
                 'email'=>$data['email'],
                 'password'=>bcrypt($data['password']),
-                'role'=>$data['role'] ?? 'user',
+                // 'role'=>$data['role'] ?? 'user',
                 'address'=>$data['address'] ?? null,
                 'phone'=>$data['phone'] ?? null,
                 'drivers_license'=>$data['drivers_license'] ?? null,
@@ -32,23 +33,39 @@ class AuthController extends Controller
             ]);
             $user->assignRole('user');
             $token = $user->createToken('auth_token')->plainTextToken;
-            return response()->json(['user'=>$user,'token'=>$token],201);
-        }catch (\Exception $e){
+
+            return response()->json([
+                'user' => $user,
+                'token' => $token,
+                'role' => $user->getRoleNames()->first()
+            ], 201);
+
+        } catch (\Exception $e){
             return response()->json(['error' => 'Failed to create user'], 500);
         }
     }
+
     public function login(Request $request){
         $data = $request->validate([
             'email'=> 'required|string|email',
             'password'=>'required|string',
         ]);
+
         $user = User::query()->where('email', $data['email'])->first();
-        if(!$user || !Hash::check($data['password'],$user->password)){
+
+        if(!$user || !Hash::check($data['password'], $user->password)){
             return response()->json(['message' => 'Incorrect email or password'], 401);
         }
+
         $token = $user->createToken('auth_token')->plainTextToken;
-        return response()->json(['user'=>$user,'token'=>$token],200);
+
+        return response()->json([
+            'user' => $user,
+            'token' => $token,
+            'role' => $user->getRoleNames()->first()
+        ], 200);
     }
+
     public function logout(Request $request){
         $request->user()->currentAccessToken()->delete();
         return response()->noContent();

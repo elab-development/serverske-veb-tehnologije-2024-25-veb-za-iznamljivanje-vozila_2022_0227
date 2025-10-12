@@ -89,7 +89,7 @@ class VehicleController extends Controller
 
     public function store(Request $request)
     {
-        if (!$request->user()->isAdmin()) {
+        if (!$request->user()->hasRole('admin')) {
             return response()->json(['message' => 'Only admins can create vehicles'], 403);
         }
         $validate = $request->validate([
@@ -136,7 +136,7 @@ class VehicleController extends Controller
      */
     public function update(Request $request, Vehicle $vehicle)
     {
-        if (!$request->user()->isAdmin()) {
+        if (!$request->user()->hasRole('admin')) {
             return response()->json(['message' => 'Only admins can edit vehicles'], 403);
         }
         $data = $request->validate([
@@ -191,7 +191,7 @@ class VehicleController extends Controller
 
         $response = Http::get("https://apiip.net/api/check", [
             'ip' => $ip,
-            'accessKey' => 'a1e4bf61-08f1-425e-bcb9-3edbea44f5fc'
+            'accessKey' => env('APIIP_ACCESS_KEY')
         ]);
 
         if ($response->failed()) {
