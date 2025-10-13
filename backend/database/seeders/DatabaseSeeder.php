@@ -20,13 +20,13 @@ class DatabaseSeeder extends Seeder
         $admin = User::factory()->create([
             'name' => 'Admin User',
             'email' => 'admin@test.com',
-            'password' => bcrypt('password'),
+            'password' => 'password',
         ]);
         $admin->assignRole('admin');
         $user = User::factory()->create([
             'name' => 'Test User',
             'email' => 'user@test.com',
-            'password' => bcrypt('password'),
+            'password' => 'password',
         ]);
         $user->assignRole('user');
         User::factory(10)->create()->each(function ($u) {

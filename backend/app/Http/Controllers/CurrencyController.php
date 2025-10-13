@@ -8,34 +8,36 @@ use Illuminate\Support\Facades\Http;
 
 class CurrencyController extends Controller
 {
-    public function convertPrice(Request $request): \Illuminate\Http\JsonResponse
+    public function convertPrice(Request $request)
     {
-        $vehicleId = $request->vehicle_id;
-        $currency = $request->get('currency', 'USD');
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:0',
+            'from' => 'required|string|size:3',
+            'to' => 'required|string|size:3',
+        ]);
 
-        $vehicle = Vehicle::query()->find($vehicleId);
-
-        if (!$vehicle) {
-            return response()->json(['error' => 'Vehicle not found'], 404);
-        }
-
-        $response = Http::get("https://api.exchangerate-api.com/v4/latest/EUR");
+        $response = Http::get("https://api.exchangerate-api.com/v4/latest/{$validated['from']}");
 
         if ($response->failed()) {
             return response()->json(['error' => 'Failed to fetch exchange rates'], 500);
         }
 
-        $rates = $response->json()['rates'];
-        $rate = $rates[$currency] ?? 1;
+        $data = $response->json();
 
-        $converted = $vehicle->price_per_day * $rate;
-        $converted = number_format($converted, 2, '.', ''); // Format umesto round
+        if (!isset($data['rates'][$validated['to']])) {
+            return response()->json(['error' => 'Invalid currency code'], 400);
+        }
+
+        $rate = $data['rates'][$validated['to']];
+        $converted = $validated['amount'] * $rate;
 
         return response()->json([
-            'vehicle' => $vehicle->brand . ' ' . $vehicle->model,
-            'price_eur' => $vehicle->price_per_day . ' EUR',
-            'price_converted' => $converted . ' ' . $currency,
-            'exchange_rate' => $rate
+            'original_amount' => $validated['amount'],
+            'from_currency' => $validated['from'],
+            'to_currency' => $validated['to'],
+            'exchange_rate' => $rate,
+            'converted_amount' => $converted,
+            'timestamp' => now()->toIso8601String()
         ]);
     }
 }

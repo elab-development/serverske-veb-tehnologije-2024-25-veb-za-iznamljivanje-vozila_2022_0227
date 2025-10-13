@@ -58,34 +58,39 @@ class ReservationController extends Controller
             'vehicle_id' => 'required|exists:vehicles,id',
             'start_date' => 'required|date|after_or_equal:today',
             'end_date' => 'required|date|after:start_date',
-            'total_price' => 'required|numeric|min:0',
         ]);
 
         $postojirezervacija = Reservation::query()->where('vehicle_id', $validated['vehicle_id'])
-        ->where(function ($query) use ($validated) {
-            $query->where(function($q) use ($validated) {
-                $q->whereBetween('start_date', $validated['start_date'], $validated['end_date'])
-                ->orWhereBetween('end_date', $validated['start_date'], $validated['end_date'])
-                ->orWhere(function($sub) use ($validated) {
-                    $sub->where('start_date', '<=', $validated['end_date'])
-                    ->where('end_date', '>=', $validated['start_date']);
+            ->where(function ($query) use ($validated) {
+                $query->where(function($q) use ($validated) {
+                    // ✅ DODAJ UGLASTE ZAGRADE []
+                    $q->whereBetween('start_date', [$validated['start_date'], $validated['end_date']])
+                        ->orWhereBetween('end_date', [$validated['start_date'], $validated['end_date']])
+                        ->orWhere(function($sub) use ($validated) {
+                            $sub->where('start_date', '<=', $validated['start_date'])
+                                ->where('end_date', '>=', $validated['end_date']);
+                        });
                 });
-            });
-        })
-        ->exists();
+            })
+            ->exists();
+
         if ($postojirezervacija) {
             return response()->json([
                 'message' => 'The vehicle is already reserved during this period'
             ], 422);
         }
+
         $vehicle = Vehicle::query()->find($validated['vehicle_id']);
         $start = new \DateTime($validated['start_date']);
         $end = new \DateTime($validated['end_date']);
         $brojDana = $start->diff($end)->days;
+
         if($brojDana == 0){
             $brojDana = 1;
         }
+
         $validated['total_price'] = $vehicle->price_per_day * $brojDana;
+
         DB::beginTransaction();
 
         try {
@@ -116,39 +121,45 @@ class ReservationController extends Controller
             'start_date' => 'sometimes|date|after_or_equal:today',
             'end_date' => 'sometimes|date|after:start_date',
         ]);
+
         if(isset($validated['start_date']) || isset($validated['end_date'])) {
             $startDate = $validated['start_date'] ?? $reservation->start_date;
             $endDate = $validated['end_date'] ?? $reservation->end_date;
 
-            $postojiRezervacija = Reservation::query()->where('vehicle_id', $reservation->vehicle_id)
+            $postojiRezervacija = Reservation::query()
+                ->where('vehicle_id', $reservation->vehicle_id)
                 ->where('id','!=',$reservation->id)
                 ->where(function ($query) use ($startDate, $endDate) {
-                    $query->where(function($q) use ($startDate, $endDate) {
-                        $q->whereBetween('start_date', [$startDate, $endDate])
-                            ->orWhereBetween('end_date', [$startDate, $endDate])
-                            ->orWhere(function($sub) use ($startDate, $endDate) {
-                                $sub->where('start_date', '<=', $startDate)
-                                    ->where('end_date', '>=', $endDate);
-                            });
-                    });
+                    // ✅ ISPRAVI I OVDE - DODAJ []
+                    $query->whereBetween('start_date', [$startDate, $endDate])
+                        ->orWhereBetween('end_date', [$startDate, $endDate])
+                        ->orWhere(function($sub) use ($startDate, $endDate) {
+                            $sub->where('start_date', '<=', $startDate)
+                                ->where('end_date', '>=', $endDate);
+                        });
                 })
                 ->exists();
+
             if($postojiRezervacija){
                 return response()->json([
                     'message' => 'The vehicle is already reserved during this period'
                 ],422);
             }
+
             $vehicle = Vehicle::query()->find($reservation->vehicle_id);
             $start = new \DateTime($startDate);
             $end = new \DateTime($endDate);
             $brojDana = $start->diff($end)->days;
-            if($brojDana ==0){
-                $brojDana=1;
+
+            if($brojDana == 0){
+                $brojDana = 1;
             }
+
             $validated['total_price'] = $vehicle->price_per_day * $brojDana;
             $reservation->update($validated);
             return response()->json($reservation);
         }
+
         return response()->json($reservation, 200);
     }
 

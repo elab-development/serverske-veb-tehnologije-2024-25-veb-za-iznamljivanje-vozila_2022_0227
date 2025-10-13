@@ -20,10 +20,10 @@ class VehicleController extends Controller
         ]);
 
         $isAvailable = !Reservation::query()->where('vehicle_id', $vehicle->id)
-            ->where(function($query) use ($validated) {
+            ->where(function ($query) use ($validated) {
                 $query->whereBetween('start_date', [$validated['start_date'], $validated['end_date']])
                     ->orWhereBetween('end_date', [$validated['start_date'], $validated['end_date']])
-                    ->orWhere(function($q) use ($validated) {
+                    ->orWhere(function ($q) use ($validated) {
                         $q->where('start_date', '<=', $validated['start_date'])
                             ->where('end_date', '>=', $validated['end_date']);
                     });
@@ -37,7 +37,9 @@ class VehicleController extends Controller
             'end_date' => $validated['end_date'],
         ]);
     }
-    public function search(Request $request){
+
+    public function search(Request $request)
+    {
         $q = trim($request->query('q', ''));
 
         $result = Vehicle::query()
@@ -52,29 +54,30 @@ class VehicleController extends Controller
 
         return response()->json($result);
     }
+
     public function index(Request $request)
     {
         $query = Vehicle::query();
-        if($request->has('brand')){
+        if ($request->has('brand')) {
             $query->where('brand', 'like', '%' . $request->brand . '%');
         }
-        if($request->has('model')){
+        if ($request->has('model')) {
             $query->where('model', 'like', '%' . $request->model . '%');
         }
-        if($request->has('year')){
+        if ($request->has('year')) {
             $query->where('year', $request->year);
         }
-        if($request->has('min_price')) {
+        if ($request->has('min_price')) {
             $query->where('price_per_day', '>=', $request->min_price);
         }
-        if($request->has('max_price')) {
+        if ($request->has('max_price')) {
             $query->where('price_per_day', '<=', $request->max_price);
         }
-        $sortBy = $request->get('sort_by','price_per_day');
-        $sortOrder = $request->get('sort_order','asc');
+        $sortBy = $request->get('sort_by', 'price_per_day');
+        $sortOrder = $request->get('sort_order', 'asc');
         $query->orderBy($sortBy, $sortOrder);
 
-        $perPage = $request->get('per_page',10);
+        $perPage = $request->get('per_page', 10);
         $vehicles = $query->paginate($perPage);
         return response()->json($vehicles);
     }
@@ -98,15 +101,15 @@ class VehicleController extends Controller
             'plate_number' => 'required|string|unique:vehicles,plate_number',
             'year' => 'required|digits:4',
             'price_per_day' => 'required|numeric',
-            'fuel_type'     => 'nullable|in:petrol,diesel,hybrid,electric',
-            'transmission'  => 'nullable|in:manual,automatic',
-            'seats'         => 'nullable|integer|min:1|max:9',
+            'fuel_type' => 'nullable|in:petrol,diesel,hybrid,electric',
+            'transmission' => 'nullable|in:manual,automatic',
+            'seats' => 'nullable|integer|min:1|max:9',
             'tank_capacity' => 'nullable|numeric|min:0|max:100',
             'available' => 'required|boolean'
         ]);
         DB::beginTransaction();
         try {
-            $vehicle = Vehicle::create($validate);
+            $vehicle = Vehicle::query()->create($validate);
             DB::commit();
             return response()->json($vehicle, 201);
         } catch (\Exception $e) {
@@ -185,9 +188,9 @@ class VehicleController extends Controller
     public function getUserLocation(Request $request)
     {
         $ip = $request->ip();
-//        if ($ip === '127.0.0.1' || $ip === '::1') {
-//            $ip = '8.8.8.8';
-//        }
+        if ($ip === '127.0.0.1' || $ip === '::1') {
+            $ip = '8.8.8.8';
+        }
 
         $response = Http::get("https://apiip.net/api/check", [
             'ip' => $ip,
