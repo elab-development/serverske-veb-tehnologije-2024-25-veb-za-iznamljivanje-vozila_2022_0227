@@ -15,14 +15,14 @@ Ova aplikacija omogucava korisnicima da pregledaju i rezervisu vozila, dok admin
 -  Registracija i prijava korisnika  
 -  Pregled i pretraga vozila  
 -  Provera dostupnosti vozila  
--  Kreiranje, ažuriranje i brisanje rezervacija  
+-  Kreiranje, azuriranje i brisanje rezervacija  
 -  Administratorske CRUD operacije  
 -  Konverzija cena (spoljni API – api.exchangerate-api.com)  
 -  Prikaz lokacije korisnika (spoljni API – apiip.net)
 
 ## Pokretanje projekta na sopstvenom računaru
 
-Da biste pokrenuli aplikaciju pratite sledeće korake:
+Da biste pokrenuli aplikaciju pratite sledece korake:
 
 ---
 
@@ -39,7 +39,7 @@ Da biste pokrenuli aplikaciju pratite sledeće korake:
      composer install
       ```
 3. Podesite .env fajl
-     Kopirajte postojeći .env.example i kreirajte novi .env fajl:
+     Kopirajte postojeci .env.example i kreirajte novi .env fajl:
     ```bash
     cp .env.example .env
     ```
@@ -52,14 +52,14 @@ Da biste pokrenuli aplikaciju pratite sledeće korake:
     DB_USERNAME=root
     DB_PASSWORD=
     ```
-4. Generišite ključ aplikacije
-    Laravel koristi enkripcioni ključ za sigurnost.
+4. Generisite kljuc aplikacije
+    Laravel koristi enkripcioni kljuc za sigurnost.
     Pokrenite komandu:
     ```bash
     php artisan key:generate
     ```
 5. Pokrenite migracije i inicijalne podatke
-   Kreirajte strukturu baze i ubacite početne podatke (seedere):
+   Kreirajte strukturu baze i ubacite pocetne podatke (seedere):
    ```bash
    php artisan migrate --seed
    ```
