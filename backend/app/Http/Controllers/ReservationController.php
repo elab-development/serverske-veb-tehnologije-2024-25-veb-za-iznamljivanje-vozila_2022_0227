@@ -63,7 +63,6 @@ class ReservationController extends Controller
         $postojirezervacija = Reservation::query()->where('vehicle_id', $validated['vehicle_id'])
             ->where(function ($query) use ($validated) {
                 $query->where(function($q) use ($validated) {
-                    // ✅ DODAJ UGLASTE ZAGRADE []
                     $q->whereBetween('start_date', [$validated['start_date'], $validated['end_date']])
                         ->orWhereBetween('end_date', [$validated['start_date'], $validated['end_date']])
                         ->orWhere(function($sub) use ($validated) {
@@ -130,7 +129,6 @@ class ReservationController extends Controller
                 ->where('vehicle_id', $reservation->vehicle_id)
                 ->where('id','!=',$reservation->id)
                 ->where(function ($query) use ($startDate, $endDate) {
-                    // ✅ ISPRAVI I OVDE - DODAJ []
                     $query->whereBetween('start_date', [$startDate, $endDate])
                         ->orWhereBetween('end_date', [$startDate, $endDate])
                         ->orWhere(function($sub) use ($startDate, $endDate) {
